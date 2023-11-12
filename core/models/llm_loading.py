@@ -89,12 +89,20 @@ def _create_device_map(model_path: str) -> dict[str, int]:
 
     # place the other layers on device 0
     device_map_other = {k: 0 for k in device_map_other}
-    # split the layers evenly across the other devices (1-num_devices)
-    num_layers = len(device_map_layers)
-    num_layers_per_device = math.ceil(num_layers / (num_devices - 1))
-    device_map_layers = {k: (i // num_layers_per_device + 1) for i, k in enumerate(device_map_layers)}
+    # split the layers evenly across the other devices (1-num_devices) if they exist
 
-    device_map = {**device_map_other, **device_map_layers}
+    if num_devices > 1:
+        num_layers = len(device_map_layers)
+        num_layers_per_device = math.ceil(num_layers / (num_devices - 1))
+        device_map_layers = {k: (i // num_layers_per_device + 1) for i, k in enumerate(device_map_layers)}
+
+        device_map = {**device_map_other, **device_map_layers}
+    elif num_devices == 1:
+        device_map_layers = {k: 0 for k in device_map_layers}
+
+        device_map = {**device_map_other, **device_map_layers}
+    else:
+        raise ValueError(f"Invalid number of devices: {num_devices}")
 
     return device_map
 
