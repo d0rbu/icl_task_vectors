@@ -1,9 +1,4 @@
 TASKS_TO_EVALUATE = [
-    # One for each category
-    "translation_fr_en",
-    "linguistic_present_simple_gerund",
-    "knowledge_country_capital",
-    "algorithmic_next_letter",
     # Translation
     "translation_fr_en",
     "translation_it_en",
