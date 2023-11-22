@@ -171,6 +171,11 @@ def batch_generate(
     return new_ids
 
 
+def batch_generate_single_token_attention(
+    
+)
+
+
 def decode_predictions(
     output_ids: torch.Tensor, tokenizer: PreTrainedTokenizer, few_shot_format: FewShotFormat = FewShotFormat()
 ) -> List[str]:

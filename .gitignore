@@ -99,3 +99,5 @@ outputs/logs
 _deprecated/
 
 models/
+
+*.pkl
