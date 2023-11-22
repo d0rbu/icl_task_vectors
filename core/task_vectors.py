@@ -27,9 +27,21 @@ def run_icl(
     task: Task,
     test_datasets: List[FewShotDataset],
     include_train: bool = True,
-) -> List[str]:
+    output_attentions: bool = False,
+) -> Union[List[str], Tuple[List[str], List[List[List[List[float]]]]]]:
     format_dataset_kwargs = {"include_train": include_train}
     inputs = tokenize_datasets(tokenizer, test_datasets, format_dataset_kwargs=format_dataset_kwargs)
+
+    if output_attentions:
+        outputs = batch_forward(model, inputs=inputs, forward_kwargs={"output_attentions": True})
+        new_ids = outputs.logits[:, -1].argmax(dim=-1)
+        predictions = decode_predictions(new_ids, tokenizer)
+        attentions = [attention.mean(dim=1).tolist() for attention in outputs.attentions]  # Average over heads, (L, B, T, T)
+
+        tokenized_sequences = [tokenizer.convert_ids_to_tokens(input_batch) for input_batch in inputs["input_ids"]]
+
+        return tokenized_sequences, attentions  # tokenized_sequences is [B, T], attentions is [L, B, T, T]
+
     new_ids = batch_generate(model, tokenizer, inputs=inputs, generate_kwargs={"max_new_tokens": 1})
     predictions = decode_predictions(new_ids, tokenizer)
 

@@ -27,8 +27,16 @@ def get_results_file_path(model_type: str, model_variant: str, experiment_id: st
     return os.path.join(attention_experiment_results_dir(experiment_id), f"{model_type}_{model_variant}.pkl")
 
 
-def get_task_attention(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_datasets: int = 1) -> Tuple[List[List[List[float]]], List[List[str]]]:
-    pass  # TODO: create datasets, run regular icl and collect attention maps
+def get_task_attention(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_datasets: int = 1) -> Tuple[List[List[List[List[float]]]], List[List[str]]]:
+    seed_everything(42)
+    accuracies = {}
+
+    task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
+
+    datasets = task.create_datasets(num_datasets=num_datasets, num_examples=num_examples)
+    icl_token_sequences, icl_attention = run_icl(model, tokenizer, task, datasets, output_attentions=True)
+
+    return icl_attention, icl_token_sequences
 
 
 def run_attention_experiment(
@@ -75,8 +83,8 @@ def run_attention_experiment(
         attention, tokenized_text = get_task_attention(model, tokenizer, task_name, num_examples, num_datasets)
 
         results[task_name] = {
-            "attention": attention,
-            "tokenized_text": tokenized_text,
+            "attention": attention,  # (L, B, T, T)
+            "tokenized_text": tokenized_text,  # (B, T)
         }
 
         with open(results_file, "wb") as f:
