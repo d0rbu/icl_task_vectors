@@ -252,12 +252,11 @@ def task_vector_accuracy_by_layer(
     # Get task hiddens
     task_hiddens = get_task_hiddens(model, tokenizer, task, datasets, multi_context=multi_context)
 
-    # Get input past_key_values
+    # Get input past_key_values, ensures that the only truly different aspect of this forward pass is the last token's hiddens after layer L
     inputs = tokenize_datasets(tokenizer, datasets, format_dataset_kwargs={"include_train": False})
     outputs = batch_forward(model, inputs=inputs, forward_kwargs={"use_cache": True})
     past_key_values = outputs.past_key_values
     past_key_values = nested_apply(past_key_values, lambda x: x[:, :, :-1])  # remove last token from past_key_values
-    inputs["input_ids"] = inputs["input_ids"][:, -1].unsqueeze(1)
 
     # Find best intermediate layer using dev set
     accuracies = []

@@ -146,8 +146,6 @@ def batch_generate(
     batches = _get_batches(inputs, batch_size, show_progress=show_progress)
     input_type = get_input_type(inputs)
 
-    device = model.device
-
     generate_ids = []
     for batch_inputs in batches:
         batch_inputs = nested_apply(batch_inputs, lambda t: t.to("cpu"))
@@ -165,15 +163,7 @@ def batch_generate(
 
     new_ids = generate_ids[:, inputs[input_type].shape[1] :]
 
-    # outs = tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    # completions = [out[len(prompt) :] for out, prompt in zip(outs, prompts)]
-
     return new_ids
-
-
-def batch_generate_single_token_attention(
-    
-)
 
 
 def decode_predictions(

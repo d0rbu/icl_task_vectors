@@ -7,7 +7,7 @@ import sys
 import os
 import pickle
 import time
-from typing import Optional
+from typing import Optional, List, Tuple
 
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
@@ -27,45 +27,8 @@ def get_results_file_path(model_type: str, model_variant: str, experiment_id: st
     return os.path.join(attention_experiment_results_dir(experiment_id), f"{model_type}_{model_variant}.pkl")
 
 
-def evaluate_task(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int) -> None:
-    seed_everything(41)
-    accuracies = {}
-
-    task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
-
-    # Evaluate baseline
-    baseline_datasets = task.create_datasets(num_datasets=100, num_examples=0)
-    predictions = run_icl(model, tokenizer, task, baseline_datasets, include_train=False)
-    accuracies["baseline"] = calculate_accuracy_on_datasets(task, predictions, baseline_datasets)
-
-    # Evaluate ICL and Task Vector
-    # TODO: Change back to 400, 100
-    # num_test_datasets, num_dev_datasets = 400, 100
-    num_test_datasets, num_dev_datasets = 50, 50
-    test_datasets = task.create_datasets(num_datasets=num_test_datasets, num_examples=num_examples)
-    dev_datasets = task.create_datasets(num_datasets=num_dev_datasets, num_examples=num_examples)
-    icl_predictions = run_icl(model, tokenizer, task, test_datasets)
-    tv_predictions, tv_dev_accuracy_by_layer, task_hiddens = run_task_vector(
-        model,
-        tokenizer,
-        task,
-        test_datasets,
-        dev_datasets,
-    )
-    accuracies["tv_dev_by_layer"] = tv_dev_accuracy_by_layer
-    accuracies["icl"] = calculate_accuracy_on_datasets(task, icl_predictions, test_datasets)
-    accuracies["tv"] = calculate_accuracy_on_datasets(task, tv_predictions, test_datasets)
-
-    tv_ordered_tokens_by_layer = {}
-    try:
-        for layer_num in tv_dev_accuracy_by_layer.keys():
-            task_hidden = task_hiddens.mean(axis=0)[layer_num]
-            logits = hidden_to_logits(model, task_hidden)
-            tv_ordered_tokens_by_layer[layer_num] = logits_top_tokens(logits, tokenizer, k=100)
-    except Exception as e:
-        print("Error:", e)
-
-    return accuracies, tv_ordered_tokens_by_layer
+def get_task_attention(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_datasets: int = 1) -> Tuple[List[List[List[float]]], List[List[str]]]:
+    pass  # TODO: create datasets, run regular icl and collect attention maps
 
 
 def run_attention_experiment(
@@ -95,7 +58,8 @@ def run_attention_experiment(
 
     tasks = get_all_tasks(tokenizer=tokenizer)
 
-    num_examples = 5
+    num_examples = 10
+    num_datasets = 5
 
     for i, task_name in enumerate(TASKS_TO_EVALUATE):
         task = tasks[task_name]
@@ -108,24 +72,11 @@ def run_attention_experiment(
         print(f"Running task {i+1}/{len(tasks)}: {task_name}")
 
         tic = time.time()
-        accuracies, tv_ordered_tokens_by_layer = evaluate_task(model, tokenizer, task_name, num_examples)
-
-        print(f"Baseline Accuracy: {accuracies['baseline']:.2f}")
-        print(f"ICL Accuracy: {accuracies['icl']:.2f}")
-        print(f"Task Vector Accuracy: {accuracies['tv']:.2f}")
-        print(f"Dev Accuracy by layer: ", end="")
-        for layer, accuracy in accuracies["tv_dev_by_layer"].items():
-            print(f"{layer}: {accuracy:.2f}, ", end="")
-        print()
-        print("Time:", time.time() - tic)
+        attention, tokenized_text = get_task_attention(model, tokenizer, task_name, num_examples, num_datasets)
 
         results[task_name] = {
-            "baseline_accuracy": accuracies["baseline"],
-            "num_examples": num_examples,
-            "icl_accuracy": accuracies["icl"],
-            "tv_accuracy": accuracies["tv"],
-            "tv_dev_accruacy_by_layer": accuracies["tv_dev_by_layer"],
-            "tv_ordered_tokens_by_layer": tv_ordered_tokens_by_layer,
+            "attention": attention,
+            "tokenized_text": tokenized_text,
         }
 
         with open(results_file, "wb") as f:
