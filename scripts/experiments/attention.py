@@ -29,7 +29,6 @@ def get_results_file_path(model_type: str, model_variant: str, experiment_id: st
 
 def get_task_attention(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_datasets: int = 1) -> Tuple[List[List[List[List[float]]]], List[List[str]]]:
     seed_everything(42)
-    accuracies = {}
 
     task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
 
@@ -66,20 +65,20 @@ def run_attention_experiment(
 
     tasks = get_all_tasks(tokenizer=tokenizer)
 
-    num_examples = 10
+    num_examples = 8
     num_datasets = 5
 
     for i, task_name in enumerate(TASKS_TO_EVALUATE):
-        task = tasks[task_name]
         if task_name in results:
             print(f"Skipping task {i+1}/{len(tasks)}: {task_name}")
             continue
+
         results[task_name] = {}
 
         print("\n" + "=" * 50)
-        print(f"Running task {i+1}/{len(tasks)}: {task_name}")
+        print(f"Getting attentions for task {i+1}/{len(tasks)}: {task_name}")
+        print(f"{num_examples} examples in this task and {num_datasets} datasets used")
 
-        tic = time.time()
         attention, tokenized_text = get_task_attention(model, tokenizer, task_name, num_examples, num_datasets)
 
         results[task_name] = {
