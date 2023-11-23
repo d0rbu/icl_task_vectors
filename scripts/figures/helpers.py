@@ -3,7 +3,8 @@ import pickle
 import pandas as pd
 
 
-from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir
+from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir
+from core.config import FIGURES_DIR
 
 MODEL_DISPLAY_NAME_MAPPING = {
     "llama_7B": "LLaMA 7B",
@@ -36,6 +37,19 @@ def load_overriding_results(experiment_id: str = "camera_ready"):
     for results_file in os.listdir(overriding_results_dir):
         model_name = results_file[:-4]
         file_path = os.path.join(overriding_results_dir, results_file)
+        with open(file_path, "rb") as f:
+            results[model_name] = pickle.load(f)
+
+    return results
+
+
+def load_attention_results(experiment_id: str = "camera_ready"):
+    results = {}
+    attention_results_dir = attention_experiment_results_dir(experiment_id)
+
+    for results_file in os.listdir(attention_results_dir):
+        model_name = results_file[:-4]
+        file_path = os.path.join(attention_results_dir, results_file)
         with open(file_path, "rb") as f:
             results[model_name] = pickle.load(f)
 
