@@ -1,6 +1,7 @@
 import os
 import pickle
 import pandas as pd
+from typing import Dict, List, Union
 
 
 from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir
@@ -56,6 +57,56 @@ def load_attention_results(experiment_id: str = "camera_ready"):
     return results
 
 
+def get_only_last_token_attentions(results: Dict[str, Dict[str, Dict[str, Union[List[List[str]], List[List[List[float]]]]]]]):
+    filtered_results = {}
+    
+    for model_name, model_results in results.items():
+        filtered_results[model_name] = {}
+        for task_name, task_results in model_results.items():
+            filtered_results[model_name][task_name] = {}
+
+            filtered_results[model_name][task_name]["tokenized_text"] = [[token.replace('Ġ', '_').replace('Ċ', '<newline>') for token in dataset_text] for dataset_text in task_results["tokenized_text"]]
+            filtered_results[model_name][task_name]["attention"] = task_results["attention"]
+            filtered_results[model_name][task_name]["last_tok_attn"] = [
+                [
+                    dataset_attention[-1] for dataset_idx, dataset_attention in enumerate(layer_attention)
+                ]
+                for layer_attention in task_results["attention"]
+            ]
+
+    return filtered_results
+
+
+def filter_attention_results(results: Dict[str, Dict[str, Dict[str, Union[List[List[str]], List[List[List[float]]]]]]]):
+    filtered_results = {}
+    
+    for model_name, model_results in results.items():
+        filtered_results[model_name] = {}
+        for task_name, task_results in model_results.items():
+            filtered_results[model_name][task_name] = {}
+
+            filtered_query_indices = [[i for i, token in enumerate(dataset_text) if token == '->'] for dataset_text in task_results["tokenized_text"]]
+
+            filtered_results[model_name][task_name]["tokenized_text"] = [[token.replace('Ġ', '_').replace('Ċ', '<newline>') for token in dataset_text] for dataset_text in task_results["tokenized_text"]]
+            filtered_results[model_name][task_name]["attention"] = [
+                [
+                    [
+                        [
+                            query_attention for query_attention in dataset_attention[token_query_indices]
+                        ]
+                        for token_query_indices in filtered_query_indices[dataset_idx]
+                    ]
+                    for dataset_idx, dataset_attention in enumerate(layer_attention)
+                ]
+                for layer_idx, layer_attention in enumerate(task_results["attention"])
+            ]
+            filtered_results[model_name][task_name]["queries"] = [
+                [task_results["tokenized_text"][dataset_idx][query_index] for query_index in query_indices] for dataset_idx, query_indices in enumerate(filtered_query_indices)
+            ]
+
+    return filtered_results
+
+
 def extract_accuracies(results):
     accuracies = {}
     for model_name, model_results in results.items():
@@ -90,8 +141,6 @@ def create_accuracies_df(results):
     # order the tasks by alphabetical order, using the task_full_name
     task_order = sorted(zip(df["task_type"].unique(), df["task_name"].unique()), key=lambda x: x[0])
     task_order = [x[1] for x in task_order]
-
-    # df["task_name"] = pd.Categorical(df["task_name"], categories=task_order, ordered=True)
 
     return df
 
