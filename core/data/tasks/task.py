@@ -33,6 +33,9 @@ class Task(ABC):
 
     def calc_test_output(self, inp: Any) -> Any:
         return self.calc_output(inp)
+    
+    def create_subset_datasets(self, num_datasets: int, max_examples: int) -> List[FewShotDataset]:
+        return [self.create_datasets(num_datasets, num_examples) for num_examples in range(max_examples + 1)]
 
     def create_datasets(self, num_datasets: int, num_examples: int) -> List[FewShotDataset]:
         return [self.create_dataset(num_examples) for _ in range(num_datasets)]

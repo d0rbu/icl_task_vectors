@@ -80,6 +80,38 @@ def run_task_vector(
     return predictions, dev_accuracy_by_layer, task_hiddens
 
 
+def run_intermediate_icl(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    task: Task,
+    test_datasets: List[List[FewShotDataset]],  # (B, num_examples)
+    dev_datasets: List[FewShotDataset],
+    num_max_examples: int = 5,
+):
+    dev_accuracy_by_layer = task_vector_accuracy_by_layer(
+        model,
+        tokenizer,
+        task,
+        dev_datasets,
+    )
+    best_intermediate_layer = int(max(dev_accuracy_by_layer, key=dev_accuracy_by_layer.get))
+
+    flattened_test_datasets = [dataset for test_dataset in test_datasets for dataset in test_dataset]
+    format_dataset_kwargs = {"include_train": True}
+    inputs = tokenize_datasets(tokenizer, flattened_test_datasets, format_dataset_kwargs=format_dataset_kwargs)
+
+    task_hiddens = get_task_hiddens(model, tokenizer, task, flattened_test_datasets)
+
+    new_ids = batch_generate(model, tokenizer, inputs=inputs, generate_kwargs={"max_new_tokens": 1})
+    predictions = decode_predictions(new_ids, tokenizer)
+
+    predictions = [predictions[i:i + num_max_examples] for i in range(0, len(predictions), num_max_examples)]
+    task_hiddens = task_hiddens[:, best_intermediate_layer, :]
+    task_hiddens = task_hiddens.view(len(test_datasets), num_max_examples, -1)  # (B, num_examples, D)
+
+    return task_hiddens, predictions  # (B, num_examples, D), (B, num_examples)
+
+
 def run_overriding_task_vector(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
