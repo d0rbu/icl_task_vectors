@@ -102,3 +102,5 @@ models/
 
 *.pkl
 outputs/figures/attention/
+outputs/figures/similarity_normalized/
+outputs/figures/similarity_unnormalized/

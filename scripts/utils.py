@@ -27,7 +27,3 @@ def attention_figures_dir(model_name: str, task_name: str) -> str:
 
 def similarity_experiment_results_dir(experiment_id: str) -> str:
     return os.path.join(SIMILARITY_RESULTS_DIR, experiment_id)
-
-
-def similarity_figures_dir(model_name: str, task_name: str) -> str:
-    return os.path.join(SIMILARITY_FIGURES_DIR, model_name, task_name)

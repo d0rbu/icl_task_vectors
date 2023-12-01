@@ -16,8 +16,6 @@ from scripts.utils import SIMILARITY_RESULTS_DIR, similarity_experiment_results_
 
 from core.data.task_helpers import get_all_tasks, get_task_by_name
 from core.models.llm_loading import load_model_and_tokenizer
-from core.models.utils.inference import hidden_to_logits
-from core.analysis.utils import logits_top_tokens
 from core.analysis.evaluation import calculate_accuracy_on_datasets
 from core.task_vectors import run_intermediate_icl
 from core.utils.misc import limit_gpus, seed_everything
