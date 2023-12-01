@@ -1,10 +1,11 @@
 import os
 import pickle
 import pandas as pd
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Callable
+from functools import partial
 
 
-from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir
+from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir, similarity_experiment_results_dir
 from core.config import FIGURES_DIR
 
 MODEL_DISPLAY_NAME_MAPPING = {
@@ -18,43 +19,23 @@ MODEL_DISPLAY_NAME_MAPPING = {
 }
 
 
-def load_main_results(experiment_id: str = "camera_ready"):
+def load_results(get_dir: Callable, experiment_id: str = "camera_ready"):
     results = {}
-    experiment_dir = main_experiment_results_dir(experiment_id)
+    results_dir = get_dir(experiment_id)
 
-    for results_file in os.listdir(experiment_dir):
+    for results_file in os.listdir(results_dir):
         model_name = results_file[:-4]
-        file_path = os.path.join(experiment_dir, results_file)
+        file_path = os.path.join(results_dir, results_file)
         with open(file_path, "rb") as f:
             results[model_name] = pickle.load(f)
 
     return results
 
 
-def load_overriding_results(experiment_id: str = "camera_ready"):
-    results = {}
-    overriding_results_dir = overriding_experiment_results_dir(experiment_id)
-
-    for results_file in os.listdir(overriding_results_dir):
-        model_name = results_file[:-4]
-        file_path = os.path.join(overriding_results_dir, results_file)
-        with open(file_path, "rb") as f:
-            results[model_name] = pickle.load(f)
-
-    return results
-
-
-def load_attention_results(experiment_id: str = "camera_ready"):
-    results = {}
-    attention_results_dir = attention_experiment_results_dir(experiment_id)
-
-    for results_file in os.listdir(attention_results_dir):
-        model_name = results_file[:-4]
-        file_path = os.path.join(attention_results_dir, results_file)
-        with open(file_path, "rb") as f:
-            results[model_name] = pickle.load(f)
-
-    return results
+load_main_results = partial(load_results, main_experiment_results_dir)
+load_overriding_results = partial(load_results, overriding_experiment_results_dir)
+load_attention_results = partial(load_results, attention_experiment_results_dir)
+load_similarity_results = partial(load_results, similarity_experiment_results_dir)
 
 
 def get_only_last_token_attentions(results: Dict[str, Dict[str, Dict[str, Union[List[List[str]], List[List[List[float]]]]]]]):

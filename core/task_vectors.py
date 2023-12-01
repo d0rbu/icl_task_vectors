@@ -84,7 +84,7 @@ def run_intermediate_icl(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizer,
     task: Task,
-    test_datasets: List[List[FewShotDataset]],  # (B, num_examples)
+    test_datasets: List[List[FewShotDataset]],  # (num_examples, B)
     dev_datasets: List[FewShotDataset],
     num_max_examples: int = 5,
 ):
@@ -105,11 +105,11 @@ def run_intermediate_icl(
     new_ids = batch_generate(model, tokenizer, inputs=inputs, generate_kwargs={"max_new_tokens": 1})
     predictions = decode_predictions(new_ids, tokenizer)
 
-    predictions = [predictions[i:i + num_max_examples] for i in range(0, len(predictions), num_max_examples)]
+    predictions = [predictions[i:i + len(test_datasets[0])] for i in range(0, len(predictions), len(test_datasets[0]))]
     task_hiddens = task_hiddens[:, best_intermediate_layer, :]
-    task_hiddens = task_hiddens.view(len(test_datasets), num_max_examples, -1)  # (B, num_examples, D)
+    task_hiddens = task_hiddens.view(len(test_datasets), len(test_datasets[0]), -1)  # (num_examples, B, D)
 
-    return task_hiddens, predictions  # (B, num_examples, D), (B, num_examples)
+    return task_hiddens, predictions  # (num_examples, B, D), (num_examples, B)
 
 
 def run_overriding_task_vector(

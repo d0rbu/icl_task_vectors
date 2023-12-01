@@ -12,7 +12,7 @@ from typing import Optional, List, Tuple
 
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
-from scripts.utils import SIMILARITY_FIGURES_DIR, similarity_experiment_results_dir
+from scripts.utils import SIMILARITY_RESULTS_DIR, similarity_experiment_results_dir
 
 from core.data.task_helpers import get_all_tasks, get_task_by_name
 from core.models.llm_loading import load_model_and_tokenizer
@@ -30,18 +30,19 @@ def get_results_file_path(model_type: str, model_variant: str, experiment_id: st
 
 def get_task_vectors_and_accuracies(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_dev_datasets: int = 50, num_test_datasets: int = 50) -> Tuple[List[List[List[List[float]]]], List[List[str]]]:
     seed_everything(42)
+
+    task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
     
-    test_datasets = task.create_subset_datasets(num_datasets=num_test_datasets, num_examples=num_examples)
+    test_datasets = task.create_subset_datasets(num_datasets=num_test_datasets, max_examples=num_examples)
     dev_datasets = task.create_datasets(num_datasets=num_dev_datasets, num_examples=num_examples)
 
     task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
 
-    task_vectors, predictions = run_intermediate_icl(model, tokenizer, task, test_datasets, dev_datasets, num_examples)
+    task_vectors, predictions = run_intermediate_icl(model, tokenizer, task, test_datasets, dev_datasets, num_examples)  # (num_examples, B, D), (num_examples, B)
 
-    predictions_transpose = list(map(list, zip(*predictions)))
-    accuracies_by_length = [calculate_accuracy_on_datasets(task, length_prediction, test_datasets) for length_prediction in predictions_transpose]  # (num_examples)
+    accuracies_by_length = [calculate_accuracy_on_datasets(task, prediction, test_datasets[i]) for i, prediction in enumerate(predictions)]  # (num_examples)
 
-    mean_task_vectors = task_vectors.mean(dim=0)  # (num_examples, D)
+    mean_task_vectors = task_vectors.mean(dim=1)  # (num_examples, D)
 
     return mean_task_vectors, accuracies_by_length
 
@@ -74,7 +75,7 @@ def run_similarity_experiment(
     tasks = get_all_tasks(tokenizer=tokenizer)
 
     num_examples = 5
-    num_dev_datasets, num_test_datasets = 50, 100
+    num_dev_datasets, num_test_datasets = 50, 50
 
     for i, task_name in enumerate(TASKS_TO_EVALUATE):
         if task_name in results:
@@ -99,7 +100,7 @@ def run_similarity_experiment(
 
 def get_new_experiment_id() -> str:
     return str(
-        max([int(results_dir) for results_dir in os.listdir(ATTENTION_RESULTS_DIR) if results_dir.isdigit()] + [0]) + 1
+        max([int(results_dir) for results_dir in os.listdir(SIMILARITY_RESULTS_DIR) if results_dir.isdigit()] + [0]) + 1
     )
 
 
