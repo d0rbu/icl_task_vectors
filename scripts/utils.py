@@ -7,6 +7,8 @@ ATTENTION_RESULTS_DIR = os.path.join(RESULTS_DIR, "attention")
 ATTENTION_FIGURES_DIR = os.path.join(FIGURES_DIR, "attention")
 SIMILARITY_RESULTS_DIR = os.path.join(RESULTS_DIR, "similarity")
 SIMILARITY_FIGURES_DIR = os.path.join(FIGURES_DIR, "similarity")
+EARLY_EXIT_RESULTS_DIR = os.path.join(RESULTS_DIR, "early_exit")
+EARLY_EXIT_FIGURES_DIR = os.path.join(FIGURES_DIR, "early_exit")
 
 
 def main_experiment_results_dir(experiment_id: str) -> str:
@@ -27,3 +29,7 @@ def attention_figures_dir(model_name: str, task_name: str) -> str:
 
 def similarity_experiment_results_dir(experiment_id: str) -> str:
     return os.path.join(SIMILARITY_RESULTS_DIR, experiment_id)
+
+
+def early_exit_experiment_results_dir(experiment_id: str) -> str:
+    return os.path.join(EARLY_EXIT_RESULTS_DIR, experiment_id)

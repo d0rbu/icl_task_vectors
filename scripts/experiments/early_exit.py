@@ -6,43 +6,60 @@ load_dotenv(".env")
 import sys
 import os
 import pickle
-import time
+import torch as th
 from typing import Optional, List, Tuple
 
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
-from scripts.utils import ATTENTION_RESULTS_DIR, attention_experiment_results_dir
+from scripts.utils import EARLY_EXIT_RESULTS_DIR, early_exit_experiment_results_dir
 
 from core.data.task_helpers import get_all_tasks, get_task_by_name
 from core.models.llm_loading import load_model_and_tokenizer
+from core.analysis.evaluation import calculate_accuracy_on_datasets
 from core.task_vectors import run_icl
 from core.utils.misc import limit_gpus, seed_everything
 from core.experiments_config import MODELS_TO_EVALUATE, TASKS_TO_EVALUATE
+from core.models.utils.inference import decode_predictions
 
 
 def get_results_file_path(model_type: str, model_variant: str, experiment_id: str = "") -> str:
-    return os.path.join(attention_experiment_results_dir(experiment_id), f"{model_type}_{model_variant}.pkl")
+    return os.path.join(early_exit_experiment_results_dir(experiment_id), f"{model_type}_{model_variant}.pkl")
 
 
-def get_task_attention(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_datasets: int = 1) -> Tuple[List[List[List[List[float]]]], List[List[str]]]:
+def get_early_exit_accuracies(model: PreTrainedModel, tokenizer: PreTrainedTokenizer, task_name: str, num_examples: int, num_dev_datasets: int = 50, num_test_datasets: int = 50) -> Tuple[List[List[List[List[float]]]], List[List[str]]]:
     seed_everything(42)
 
     task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
 
-    datasets = task.create_datasets(num_datasets=num_datasets, num_examples=num_examples)
-    icl_token_sequences, icl_attention = run_icl(model, tokenizer, task, datasets, output_attentions=True)
+    datasets = task.create_datasets(num_datasets=num_test_datasets, max_examples=num_examples)
 
-    return icl_attention, icl_token_sequences
+    task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
+
+    icl_hiddens = run_icl(model, tokenizer, task, datasets, output_attentions=True)  # (L, B, T, D)
+
+    model_head = model.lm_head
+
+    accuracies_by_depth = []
+
+    with th.no_grad():
+        for i, hiddens in enumerate(icl_hiddens):
+            logits = model_head(hiddens[:, -1, :])
+            new_ids = logits.argmax(dim=-1)
+            predictions = decode_predictions(new_ids, tokenizer)
+
+            accuracies_by_depth.append(calculate_accuracy_on_datasets(task, predictions, datasets[i]))
+    
+    return accuracies_by_depth
 
 
-def run_attention_experiment(
+def run_early_exit_experiment(
     model_type: str,
     model_variant: str,
     experiment_id: str = "",
     model: Optional[PreTrainedModel] = None,
     tokenizer: Optional[PreTrainedTokenizer] = None,
 ) -> None:
-    print("Pulling model attention:", model_type, model_variant)
+    print("Pulling model early exit accuracies:", model_type, model_variant)
 
     results_file = get_results_file_path(model_type, model_variant, experiment_id=experiment_id)
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
@@ -62,8 +79,8 @@ def run_attention_experiment(
 
     tasks = get_all_tasks(tokenizer=tokenizer)
 
-    num_examples = 8
-    num_datasets = 5
+    num_examples = 5
+    num_dev_datasets, num_test_datasets = 50, 50
 
     for i, task_name in enumerate(TASKS_TO_EVALUATE):
         if task_name in results:
@@ -73,14 +90,12 @@ def run_attention_experiment(
         results[task_name] = {}
 
         print("\n" + "=" * 50)
-        print(f"Getting attentions for task {i+1}/{len(tasks)}: {task_name}")
-        print(f"{num_examples} examples in this task and {num_datasets} datasets used")
+        print(f"Getting accuracies for task {i+1}/{len(tasks)}: {task_name}")
 
-        attention, tokenized_text = get_task_attention(model, tokenizer, task_name, num_examples, num_datasets)
+        accuracies = get_early_exit_accuracies(model, tokenizer, task_name, num_examples, num_dev_datasets, num_test_datasets)
 
         results[task_name] = {
-            "attention": attention,  # (L, B, T, T)
-            "tokenized_text": tokenized_text,  # (B, T)
+            "accuracies": accuracies,  # (L)
         }
 
         with open(results_file, "wb") as f:
@@ -89,7 +104,7 @@ def run_attention_experiment(
 
 def get_new_experiment_id() -> str:
     return str(
-        max([int(results_dir) for results_dir in os.listdir(ATTENTION_RESULTS_DIR) if results_dir.isdigit()] + [0]) + 1
+        max([int(results_dir) for results_dir in os.listdir(EARLY_EXIT_RESULTS_DIR) if results_dir.isdigit()] + [0]) + 1
     )
 
 
@@ -99,7 +114,7 @@ def main():
         # Calculate the experiment_id as the max experiment_id + 1
         experiment_id = get_new_experiment_id()
         for model_type, model_variant in MODELS_TO_EVALUATE:
-            run_attention_experiment(model_type, model_variant, experiment_id=experiment_id)
+            run_early_exit_experiment(model_type, model_variant, experiment_id=experiment_id)
     else:
         if len(sys.argv) == 2:
             model_num = int(sys.argv[1])
@@ -107,7 +122,7 @@ def main():
         elif len(sys.argv) == 3:
             model_type, model_variant = sys.argv[1:]
 
-        run_attention_experiment(model_type, model_variant)
+        run_early_exit_experiment(model_type, model_variant)
 
 
 if __name__ == "__main__":
