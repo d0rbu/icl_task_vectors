@@ -43,9 +43,9 @@ def run_icl(
         return tokenized_sequences, attentions  # tokenized_sequences is [B, T], attentions is [L, B, T, T]
 
     if output_hiddens:
-        new_ids, hiddens = batch_generate(model, tokenizer, inputs=inputs, generate_kwargs={"max_new_tokens": 1, "output_hidden_states": True})
+        outputs = batch_forward(model, inputs=inputs, forward_kwargs={"output_hidden_states": True})
 
-        return hiddens # (L, B, T, D)
+        return outputs.hidden_states # (L, B, T, D)
 
     new_ids = batch_generate(model, tokenizer, inputs=inputs, generate_kwargs={"max_new_tokens": 1})
     predictions = decode_predictions(new_ids, tokenizer)
