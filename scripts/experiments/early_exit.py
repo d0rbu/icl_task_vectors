@@ -31,7 +31,7 @@ def get_early_exit_accuracies(model: PreTrainedModel, tokenizer: PreTrainedToken
 
     task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
 
-    datasets = task.create_datasets(num_datasets=num_test_datasets, max_examples=num_examples)
+    datasets = task.create_datasets(num_datasets=num_dev_datasets, num_examples=num_examples)
 
     task = get_task_by_name(tokenizer=tokenizer, task_name=task_name)
 
