@@ -47,7 +47,7 @@ def get_early_exit_accuracies(model: PreTrainedModel, tokenizer: PreTrainedToken
             new_ids = logits.argmax(dim=-1)
             predictions = decode_predictions(new_ids, tokenizer)
 
-            accuracies_by_depth.append(calculate_accuracy_on_datasets(task, predictions, datasets[i]))
+            accuracies_by_depth.append(calculate_accuracy_on_datasets(task, predictions, datasets))
     
     return accuracies_by_depth
 
