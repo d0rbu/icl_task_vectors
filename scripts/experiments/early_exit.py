@@ -37,7 +37,9 @@ def get_early_exit_accuracies(model: PreTrainedModel, tokenizer: PreTrainedToken
 
     icl_hiddens = run_icl(model, tokenizer, task, datasets, output_hiddens=True)  # (L, B, T, D)
 
-    model_head = model.lm_head
+    model_head = getattr(model, "lm_head", None)
+    if model_head is None:
+        model_head = getattr(model, "embed_out", None)
 
     accuracies_by_depth = []
 
