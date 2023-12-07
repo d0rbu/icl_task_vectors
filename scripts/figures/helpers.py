@@ -5,13 +5,14 @@ from typing import Dict, List, Union, Callable
 from functools import partial
 
 
-from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir, similarity_experiment_results_dir
+from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir, similarity_experiment_results_dir, early_exit_experiment_results_dir
 from core.config import FIGURES_DIR
 
 MODEL_DISPLAY_NAME_MAPPING = {
     "llama_7B": "LLaMA 7B",
     "llama_13B": "LLaMA 13B",
     "llama_30B": "LLaMA 30B",
+    "gpt-2_1.5B": "GPT-2 1.5B",
     "gpt-j_6B": "GPT-J 6B",
     "pythia_2.8B": "Pythia 2.8B",
     "pythia_6.9B": "Pythia 6.9B",
@@ -36,6 +37,7 @@ load_main_results = partial(load_results, main_experiment_results_dir)
 load_overriding_results = partial(load_results, overriding_experiment_results_dir)
 load_attention_results = partial(load_results, attention_experiment_results_dir)
 load_similarity_results = partial(load_results, similarity_experiment_results_dir)
+load_early_exit_results = partial(load_results, early_exit_experiment_results_dir)
 
 
 def get_only_last_token_attentions(results: Dict[str, Dict[str, Dict[str, Union[List[List[str]], List[List[List[float]]]]]]]):

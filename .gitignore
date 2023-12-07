@@ -101,6 +101,4 @@ _deprecated/
 models/
 
 *.pkl
-outputs/figures/attention/
-outputs/figures/similarity_normalized/
-outputs/figures/similarity_unnormalized/
+outputs/figures/
