@@ -1,6 +1,6 @@
 import os
 import torch as th
-from scripts.figures.helpers import load_similarity_results
+from scripts.figures.helpers import load_similarity_results, MODEL_DISPLAY_NAME_MAPPING
 from scripts.utils import SIMILARITY_FIGURES_DIR
 from core.config import FIGURES_DIR
 import matplotlib.pyplot as plt
@@ -54,6 +54,7 @@ def create_similarity_figures(experiment_id: str = "camera_ready", similarity_me
         average_accuracies /= len(model_results)
 
         plt.plot(average_similarities, average_accuracies)
+        plt.title(f"{MODEL_DISPLAY_NAME_MAPPING[model_name]} Average Similarity vs. Accuracy")
         plt.xlabel("Similarity to Task Vector")
         plt.ylabel("Accuracy")
 

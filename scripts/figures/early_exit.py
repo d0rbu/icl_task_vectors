@@ -1,6 +1,6 @@
 import os
 import torch as th
-from scripts.figures.helpers import load_early_exit_results
+from scripts.figures.helpers import load_early_exit_results, MODEL_DISPLAY_NAME_MAPPING
 from scripts.utils import EARLY_EXIT_FIGURES_DIR
 from core.config import FIGURES_DIR
 import matplotlib.pyplot as plt
@@ -30,6 +30,7 @@ def create_early_exit_figures(experiment_id: str = "camera_ready"):
         average_accuracies /= len(model_results)
 
         plt.plot(average_accuracies)
+        plt.title(f"{MODEL_DISPLAY_NAME_MAPPING[model_name]} Early Exit Accuracies By Layer")
         plt.xlabel("Model Depth")
         plt.ylabel("Accuracy")
 

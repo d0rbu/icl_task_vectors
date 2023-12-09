@@ -6,7 +6,6 @@ from functools import partial
 
 
 from scripts.utils import main_experiment_results_dir, overriding_experiment_results_dir, attention_experiment_results_dir, similarity_experiment_results_dir, early_exit_experiment_results_dir
-from core.config import FIGURES_DIR
 
 MODEL_DISPLAY_NAME_MAPPING = {
     "llama_7B": "LLaMA 7B",
