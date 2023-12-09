@@ -46,14 +46,18 @@ def create_attention_figures(experiment_id: str = "camera_ready"):
         
         avg_arrow_to_query_layerwise_attn /= num_examples
         avg_arrow_to_query_layerwise_attns[model_name] = avg_arrow_to_query_layerwise_attn
-    
-    fig, axs = plt.subplots(1, len(results), figsize=(8, 8))
+
+    fig, axs = plt.subplots(1, len(results), figsize=(9, 6))
 
     for i, (model_name, avg_arrow_to_query_layerwise_attn) in enumerate(avg_arrow_to_query_layerwise_attns.items()):
-        sns.heatmap(avg_arrow_to_query_layerwise_attn, ax=axs[i])
+        heatmap = sns.heatmap(avg_arrow_to_query_layerwise_attn.tolist()[::-1], ax=axs[i], vmin=0, vmax=0.2, cbar=i >= len(results) - 1)
         axs[i].set_xlabel(model_name)
+        axs[i].set_xticklabels(["query", "->"])
+        heatmap.set(yticklabels=[])
+        heatmap.set(ylabel=None)
+        heatmap.tick_params(left=False)
     
-    fig.suptitle("Average Attention to Query Token by Layer")
+    fig.suptitle("Average Attention from Final to Query/Final Token by Layer")
     plt.savefig(os.path.join(FIGURES_DIR, "attention_to_query.png"))
 
 
